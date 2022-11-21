@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Img;
-
+use App\ImgAfter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Session;
@@ -23,12 +23,16 @@ class ImgController extends Controller
             foreach ($files as $file) {
                 $filename = $file->getClientOriginalName();
                 $extension = $file->getClientOriginalExtension();
+                $size = $file->getSize();
                 // cho vào file 
                 $file->move('source/image', $filename);
                 // khởi tạo đối tượng ảnh
                 $imgData = new Img();
                 $imgData->image = $filename;
                 $imgData->extension = $extension;
+                $imgData->size = $size;
+                $imgData->formatSize = $this->formatSizeUnits($size);
+
                 $imgData->save();
             }
             return redirect('ImageData');
@@ -53,17 +57,13 @@ class ImgController extends Controller
         return back();
     }
 
-    public function convertImageData(Request $request, $image_quality = 50)
+    public function convertImageData(Request $request, $image_quality = 100)
     {
-        $idImg = $request->id_img; // id ảnh
-        foreach ($idImg as $id) {
-            $delete_Img = Img::where('id', $id)->delete();
-        }
         $typeTarget = $request->typecanchuyen; // kiểu cần chuyển
         $nameImg = $request->name_img; // tên ban đầu
         $typeOriginal = $request->type_img; // kiểu ban đầu
         $count = 0;
-
+        $idImg = $request->id_img; 
         foreach ($idImg as $id) {
             $count++;
         }
@@ -77,7 +77,7 @@ class ImgController extends Controller
             $typeTarget[$i];
 
 
-            $dir = 'source/image/';
+            $dir = 'source/image/'; // đường dẫn ban đầu
 
             $target_dir = "source/convert/"; // đường dẫn lưu trữ ảnh đã convert
 
@@ -128,7 +128,49 @@ class ImgController extends Controller
             }
         }
 
-        return view('download', ['idImg' => $idImg]);
+        $file_names = glob("source/convert/*");
+        $ImgData = Img::all();
+        $dem = 0 ;
+        foreach($file_names as $item)
+        {
+            $dem++;
+        }
+        for($j = 0 ; $j < $dem ; $j++)
+        {
+            
+            $newName = basename($file_names[$j]); // tên mới 
+            $link = $file_names[$j];
+            $size = filesize($file_names[$j]); // size mới
+            $id_img = $ImgData[$j]->id;
+            $sizeBefore =  $ImgData[$j]->size;// size cũ
+            $decleare = round(100 - (($size/$sizeBefore)*100));
+
+            $ImgAfter = new ImgAfter();
+            $ImgAfter->id_img = $id_img;
+            $ImgAfter->name = $newName;
+            $ImgAfter->link = $link;
+            $ImgAfter->formatSizeBefore = $this->formatSizeUnits($sizeBefore);
+            $ImgAfter->formatSizeAfter = $this->formatSizeUnits($size);
+            $ImgAfter->decleare = $decleare;
+            $ImgAfter->save();
+            
+
+        }
+        $ImgAfter = ImgAfter::all();
+
+        // XÓA DỮ LIỆU BẢNG img
+        $idImg = $request->id_img; // id ảnh
+        foreach ($idImg as $id) {
+            $delete_Img = Img::where('id', $id)->delete();
+            $delete_ImgAfter = ImgAfter::where('id_img' ,$id)->delete();
+        }
+       
+
+
+
+
+
+        return view('download',['ImgAfter'=> $ImgAfter]);
     }
 
     public function download_img(Request $request)
@@ -197,5 +239,26 @@ class ImgController extends Controller
             }
         }
         // return redirect('Upload');
+    }
+
+
+
+    function formatSizeUnits($bytes)
+    {
+        if ($bytes >= 1073741824) {
+            $bytes = number_format($bytes / 1073741824, 2) . ' GB';
+        } elseif ($bytes >= 1048576) {
+            $bytes = number_format($bytes / 1048576, 2) . ' MB';
+        } elseif ($bytes >= 1024) {
+            $bytes = number_format($bytes / 1024, 2) . ' KB';
+        } elseif ($bytes > 1) {
+            $bytes = $bytes . ' bytes';
+        } elseif ($bytes == 1) {
+            $bytes = $bytes . ' byte';
+        } else {
+            $bytes = '0 bytes';
+        }
+
+        return $bytes;
     }
 }

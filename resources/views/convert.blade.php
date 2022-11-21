@@ -42,6 +42,7 @@ $types = array(
     <th>Tên ảnh</th>
     <th>Hình ảnh</th>
     <th>Loại ảnh</th>
+    <th>Dung lượng</th>
     <th>Convert Sang</th>
     <th>Thao Tác</th>
   </tr>
@@ -53,6 +54,7 @@ $types = array(
   <td>{{$item->image}}</td>
   <td><img src="source/image/{{$item->image}}" alt="" width="100px" height="100px"></td>
   <td>{{$item->extension}}</td>
+  <td>{{$item->formatSize}}</td>
   <td>
     <select id="select-{{$dem}}" name="typecanchuyen[]">
       <?php foreach($types as $key=>$type) {?>
