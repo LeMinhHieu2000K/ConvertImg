@@ -254,10 +254,10 @@ class ImgController extends Controller
         foreach ($file_names as $file) {
             $dem++;
         }
-        // for($k = 0 ; $k< $dem ; $k++)
-        // {
-        //     rename("source/convert/$file_names[$k]", "source/convert/$file_names[$k]. '__' . $ngay");
-        // }
+        for($k = 0 ; $k< $dem ; $k++)
+        {
+            rename("source/convert/$file_names[$k]", "source/convert/$file_names[$k]. '__' . $ngay");
+        }
 
         if ($dem == 1) {
             $file_names = glob("source/convert/*");
@@ -308,7 +308,8 @@ class ImgController extends Controller
             foreach ($file_namess as $file) {
                 unlink($file);
             }
-            $status = unlink('D:\xampp\htdocs\project\ConvertMultipleImg\public\$archive_file_name');
+            $status = unlink("'D:\xampp\htdocs\project\ConvertMultipleImg\public\'.$archive_file_name");
+         
             if ($status) {
                 echo "File bị xóa thành công!";
             } else {
