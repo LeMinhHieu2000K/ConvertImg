@@ -17,6 +17,16 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get("register", "ImgController@getRegister");
+
+Route::post("register", "ImgController@postRegister");
+
+Route::get("login", "ImgController@getLogin");
+
+Route::post("login", "ImgController@postLogin");
+
+Route::get("logout", "ImgController@getLogout");
+
 Route::get('Upload' , "ImgController@getUploadImg");
 
 Route::post('Upload' , "ImgController@postUploadImg");

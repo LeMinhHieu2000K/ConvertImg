@@ -13,6 +13,8 @@
         <input type="file" id="files" name="files[]" multiple><br><br>
         <input type="submit">
       </form>
+
+      <a href="logout">Đăng xuất</a>
     
 </body>
 </html>
