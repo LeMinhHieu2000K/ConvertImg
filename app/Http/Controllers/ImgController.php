@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Img;
 use App\ImgAfter;
+use App\ImgClient;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,11 +40,13 @@ class ImgController extends Controller
         $user->role = $request->role;
         $user->save();
 
-        $emailTarget = $request->email;// email thằng nhận
+        $emailTarget = $request->email; // email thằng nhận
 
         // gửi email thông báo đăng ký thành công
-        Mail::send('testMail',['name' => $request->name , 'email'=> $request->email, 'password'=> $request->password ],
-            function ($email) use($emailTarget)  { // phải dùng phương thức use mới dùng được biến $emailTarget
+        Mail::send(
+            'testMail',
+            ['name' => $request->name, 'email' => $request->email, 'password' => $request->password],
+            function ($email) use ($emailTarget) { // phải dùng phương thức use mới dùng được biến $emailTarget
                 $email->subject('Chúc mừng bạn đã đăng ký thành công');
                 $email->to($emailTarget);
             }
@@ -81,7 +84,8 @@ class ImgController extends Controller
     }
     public function getUploadImg()
     {
-        return view('Upload');
+        $ImgClient = ImgClient::where('user_id', Auth::user()->id)->get();
+        return view('Upload' , ['ImgClient'=>$ImgClient]);
     }
 
     public function postUploadImg(Request $request)
@@ -144,11 +148,15 @@ class ImgController extends Controller
             $dir = 'source/image/'; // đường dẫn ban đầu
             $target_dir = "source/convert/"; // đường dẫn lưu trữ ảnh đã convert
             $image = $dir . $nameImg[$i]; // tạo ảnh
+            $date = getdate();
+            $ngay = $date['mday'] . $date['mon'] . $date['year'];
             $only_name = basename($image, '.' . $typeOriginal[$i]);
+            $only_name1 = $only_name.'_'.$ngay.'_'.$i;
+
             if ($typeTarget[$i] == 'gif') {
                 $binary = imagecreatefromstring(file_get_contents($image));
-                imageGif($binary, $target_dir . $only_name . '.' . $typeTarget[$i], $image_quality);
-                $ten_moi = $only_name . '.' . $typeTarget[$i];
+                imageGif($binary, $target_dir . $only_name1 . '.' . $typeTarget[$i], $image_quality);
+                $ten_moi = $only_name1 . '.' . $typeTarget[$i];
 
                 ob_start(); //Tạo một bộ đệm đầu ra mới và thêm nó vào đầu ngăn xếp.
                 imagegif($binary, NULL, 100);
@@ -163,8 +171,8 @@ class ImgController extends Controller
 
             if ($typeTarget[$i] == 'webp') {
                 $binary = imagecreatefromstring(file_get_contents($image));
-                imagewebp($binary, $target_dir . $only_name . '.' . $typeTarget[$i], $image_quality);
-                $ten_moi = $only_name . '.' . $typeTarget[$i];
+                imagewebp($binary, $target_dir . $only_name1 . '.' . $typeTarget[$i], $image_quality);
+                $ten_moi = $only_name1 . '.' . $typeTarget[$i];
 
                 ob_start(); //Tạo một bộ đệm đầu ra mới và thêm nó vào đầu ngăn xếp.
                 imagewebp($binary, NULL, 100);
@@ -178,8 +186,8 @@ class ImgController extends Controller
             }
             if ($typeTarget[$i] == 'png') {
                 $binary = imagecreatefromstring(file_get_contents($image));
-                imagepng($binary, $target_dir . $only_name . '.' . $typeTarget[$i], $image_quality);
-                $ten_moi = $only_name . '.' . $typeTarget[$i];
+                imagepng($binary, $target_dir . $only_name1 . '.' . $typeTarget[$i], $image_quality);
+                $ten_moi = $only_name1 . '.' . $typeTarget[$i];
 
                 ob_start();
                 imagepng($binary, NULL, 100);
@@ -194,8 +202,8 @@ class ImgController extends Controller
 
             if ($typeTarget[$i] == 'jpg') {
                 $binary = imagecreatefromstring(file_get_contents($image));
-                imagejpeg($binary, $target_dir . $only_name . '.' . $typeTarget[$i], $image_quality);
-                $ten_moi = $only_name . '.' . $typeTarget[$i];
+                imagejpeg($binary, $target_dir . $only_name1 . '.' . $typeTarget[$i], $image_quality);
+                $ten_moi = $only_name1 . '.' . $typeTarget[$i];
 
                 ob_start();
                 imagejpeg($binary, NULL, 100);
@@ -216,7 +224,6 @@ class ImgController extends Controller
             $dem++;
         }
         for ($j = 0; $j < $dem; $j++) {
-
             $newName = basename($file_names[$j]); // tên mới 
             $link = $file_names[$j];
             $size = filesize($file_names[$j]); // size mới
@@ -232,33 +239,35 @@ class ImgController extends Controller
             $ImgAfter->formatSizeAfter = $this->formatSizeUnits($size);
             $ImgAfter->decleare = $decleare;
             $ImgAfter->save();
+
+            $ImgClient = new ImgClient();
+            $ImgClient->user_id = Auth::user()->id;
+            $ImgClient->image = $newName;
+            $ImgClient->size = $this->formatSizeUnits($size);
+            $ImgClient->link = $link;
+            $ImgClient->save();
         }
         $ImgAfter = ImgAfter::all();
 
         // XÓA DỮ LIỆU BẢNG img và img After
-        $idImg = $request->id_img; // id ảnh
-        foreach ($idImg as $id) {
-            $delete_Img = Img::where('id', $id)->delete();
-            $delete_ImgAfter = ImgAfter::where('id_img', $id)->delete();
-        }
+        // $idImg = $request->id_img; // id ảnh
+        // foreach ($idImg as $id) {
+        //     $delete_Img = Img::where('id', $id)->delete();
+        //     $delete_ImgAfter = ImgAfter::where('id_img', $id)->delete();
+        // }
 
         return view('download', ['ImgAfter' => $ImgAfter]);
     }
 
     public function download_img(Request $request)
     {
-        $date = getdate(); 
-        $ngay = $date['mday']. '/' .$date['mon']. '/' .$date['year'];
+        $date = getdate();
+        $ngay = $date['mday'] . '/' . $date['mon'] . '/' . $date['year'];
         $dem  = 0;
         $file_names = glob("source/convert/*");
         foreach ($file_names as $file) {
             $dem++;
         }
-        for($k = 0 ; $k< $dem ; $k++)
-        {
-            rename("source/convert/$file_names[$k]", "source/convert/$file_names[$k]. '__' . $ngay");
-        }
-
         if ($dem == 1) {
             $file_names = glob("source/convert/*");
             $file_namess = glob("source/image/*");
@@ -269,21 +278,15 @@ class ImgController extends Controller
                 header("Content-disposition: attachment; filename=\"" . basename($file) . "\"");
                 readfile($file);
             }
-            foreach ($file_names as $file) {
-                unlink($file);
-            }
-            foreach ($file_namess as $file) {
-                unlink($file);
-            }
-            $status = unlink('D:\xampp\htdocs\project\ConvertMultipleImg\public\file.zip');
-            if ($status) {
-                echo "File bị xóa thành công!";
-            } else {
-                echo "Error: File không bị xóa.";
-            }
+            // foreach ($file_names as $file) {
+            //     unlink($file);
+            // }
+            // foreach ($file_namess as $file) {
+            //     unlink($file);
+            // }
         } elseif ($dem >= 2) {
-            $ngay = $date['mday'].$date['mon'].$date['year'].$date['hours'].$date['minutes'].$date['seconds'];
-            $archive_file_name = $ngay.'.zip';
+            $ngay = $date['mday'] . $date['mon'] . $date['year'] . $date['hours'] . $date['minutes'] . $date['seconds'];
+            $archive_file_name = $ngay . '.zip';
             $file_names = glob("source/convert/*");
             $file_namess = glob("source/image/*");
             $file_path =  'source/convert/';
@@ -302,21 +305,21 @@ class ImgController extends Controller
             readfile("$archive_file_name");
 
 
-            foreach ($file_names as $file) {
-                unlink($file);
-            }
-            foreach ($file_namess as $file) {
-                unlink($file);
-            }
+            // foreach ($file_names as $file) {
+            //     unlink($file);
+            // }
+            // foreach ($file_namess as $file) {
+            //     unlink($file);
+            // }
             $status = unlink("'D:\xampp\htdocs\project\ConvertMultipleImg\public\'.$archive_file_name");
-         
+
             if ($status) {
                 echo "File bị xóa thành công!";
             } else {
                 echo "Error: File không bị xóa.";
             }
         }
-        // return redirect('Upload');
+        return redirect('Upload');
     }
 
 
